@@ -3,43 +3,43 @@ name: Deploy React App to EC2
 on:
   push:
     branches:
+      - main
 
-  - main
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout code
-    uses: actions/checkout@v3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  - name: Set up Node.js
-    uses: actions/setup-node@v3
-    with:
-      node-version: '16'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-  - name: Install dependencies
-    run: npm install
+      - name: Install dependencies
+        run: npm install
 
-  - name: Build React app
-    run: npm run build
+      - name: Build React app
+        run: npm run build
 
-  - name: Copy files via SCP
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-    run: |
-      sudo apt-get install -y openssh-client
-      echo "${{ secrets.EC2_KEY }}" > key.pem
-      chmod 700 key.pem
-      scp -o StrictHostKeyChecking=no -i key.pem -r build/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu
+      - name: Copy files via SCP
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          sudo apt-get install -y openssh-client
+          echo "${{ secrets.EC2_KEY }}" > key.pem
+          chmod 700 key.pem
+          scp -o StrictHostKeyChecking=no -i key.pem -r build/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu
 
-  - name: Deploy to Nginx
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-    run: |
-      ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-      sudo mv /home/ubuntu /var/www/html/
-      sudo systemctl restart nginx
-      EOF
+      - name: Deploy to Nginx
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          sudo mv /home/ubuntu/build/* /var/www/html/
+          sudo systemctl restart nginx
+          EOF
